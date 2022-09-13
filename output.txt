@@ -1,0 +1,2 @@
+g++ -ggdb image_test.cpp -o image_test.o `pkg-config --cflags --libs opencv`
+
