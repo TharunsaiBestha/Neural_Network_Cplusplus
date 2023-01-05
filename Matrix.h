@@ -67,6 +67,17 @@ class Matrix
         return vec[d.second*(row)+(col)];
     }
     void operator+=(const Matrix& M){
+        if(d!=M.dim())
+        set_dim(M.dim().first,M.dim().second);
+        for(int i=0;i<M.dim().first;i++){
+            for(int j=0;j<M.dim().second;j++){
+                vec[i*M.dim().second+j]+=M(i,j);
+            }
+        }
+    }
+    void operator+=(Matrix&& M){
+        if(d!=M.dim())
+        set_dim(M.dim().first,M.dim().second);
         for(int i=0;i<M.dim().first;i++){
             for(int j=0;j<M.dim().second;j++){
                 vec[i*M.dim().second+j]+=M(i,j);
@@ -74,6 +85,13 @@ class Matrix
         }
     }
     void operator-=(const Matrix& M){
+        for(int i=0;i<M.dim().first;i++){
+            for(int j=0;j<M.dim().second;j++){
+                vec[i*M.dim().second+j]-=M(i,j);
+            }
+        }
+    }
+    void operator-=(Matrix&& M){
         for(int i=0;i<M.dim().first;i++){
             for(int j=0;j<M.dim().second;j++){
                 vec[i*M.dim().second+j]-=M(i,j);
@@ -119,8 +137,38 @@ Matrix<T> operator+(Matrix<T>& lhs,Matrix<T>&& rhs){
     }
 template<typename T>
 Matrix<T> operator+(Matrix<T>&& lhs,Matrix<T>&& rhs){
-    std::pair<std::size_t,std::size_t> temp_d=lhs.dim();
         rhs+=lhs;
+        return rhs;
+    }
+template<typename T>
+Matrix<T> operator+(const T val,const Matrix<T>& rhs){
+        std::pair<std::size_t,std::size_t> temp_d=rhs.dim();
+        Matrix<T> temp(temp_d.first,temp_d.second);
+        for(int i=0;i<temp_d.first;i++){
+            for(int j=0;j<temp_d.second;j++){
+                temp(i,j)=val+rhs(i,j);
+            }
+        }
+        return temp;
+}
+template<typename T>
+Matrix<T> operator+(const T val,Matrix<T>&& rhs){
+    std::pair<std::size_t,std::size_t> temp_d=rhs.dim();
+        for(int i=0;i<temp_d.first;i++){
+            for(int j=0;j<temp_d.second;j++){
+                rhs(i,j)=val+rhs(i,j);
+            }
+        }
+    return rhs;}
+template<typename T>
+Matrix<T> operator+(const Matrix<T>& rhs,const T val){
+    return val+rhs;}
+template<typename T>
+Matrix<T> operator+(Matrix<T>&& rhs,const T val){
+    return val+std::move(rhs);}
+template<typename T>
+Matrix<T> operator-(const Matrix<T>& lhs,const Matrix<T>& rhs){
+        std::pair<std::size_t,std::size_t> temp_d=lhs.dim();
         Matrix<T> temp(temp_d.first,temp_d.second);
         temp-=lhs;
         temp-=rhs;
@@ -142,6 +190,32 @@ Matrix<T> operator-(Matrix<T>&& lhs,Matrix<T>&& rhs){
         return rhs;
     }
 template<typename T>
+Matrix<T> operator-(const T val,const Matrix<T>& rhs){
+        std::pair<std::size_t,std::size_t> temp_d=rhs.dim();
+        Matrix<T> temp(temp_d.first,temp_d.second);
+        for(int i=0;i<temp_d.first;i++){
+            for(int j=0;j<temp_d.second;j++){
+                temp(i,j)=val-rhs(i,j);
+            }
+        }
+        return temp;
+}
+template<typename T>
+Matrix<T> operator-(const T val,Matrix<T>&& rhs){
+    std::pair<std::size_t,std::size_t> temp_d=rhs.dim();
+        for(int i=0;i<temp_d.first;i++){
+            for(int j=0;j<temp_d.second;j++){
+                rhs(i,j)=val-rhs(i,j);
+            }
+        }
+    return rhs;}
+template<typename T>
+Matrix<T> operator-(const Matrix<T>& rhs,const T val){
+    return val-rhs;}
+template<typename T>
+Matrix<T> operator-(Matrix<T>&& rhs,const T val){
+    return val-std::move(rhs);}
+template<typename T>
 Matrix<T> operator*(const T val,const Matrix<T>& rhs){
         std::pair<std::size_t,std::size_t> temp_d=rhs.dim();
         Matrix<T> temp(temp_d.first,temp_d.second);
@@ -152,7 +226,7 @@ Matrix<T> operator*(const T val,const Matrix<T>& rhs){
         }
         return temp;
     }
-    template<typename T>
+template<typename T>
 Matrix<T> operator*(const T val,Matrix<T>&& rhs){
     std::pair<std::size_t,std::size_t> temp_d=rhs.dim();
         for(int i=0;i<temp_d.first;i++){
@@ -198,14 +272,14 @@ Matrix<T> operator*(Matrix<T>&& lhs,Matrix<T>&& rhs){
     }
 template<typename T>
 std::ostream& operator<<(std::ostream& os,const Matrix<T>& M){
-        os<<'\n';
+        os<<"\n";
         for(int i=0;i<M.dim().first;i++){
             for(int j=0;j<M.dim().second;j++){
-                os<<M(i,j)<<' ';
+                os<<M(i,j)<<" ";
             }
-            os<<'\n';
+            os<<"\n";
         }
-        os<<'\n';
+        os<<"\n";
         return os;
     }
 template<typename T>
@@ -217,6 +291,14 @@ Matrix<T> dot_prod(const Matrix<T>& lhs,const Matrix<T>& rhs){
         }
     }
     return res;
+}
+template<typename T>
+void write_to_file(std::string filename,const Matrix<T>& M){
+    std::ofstream fout;
+    fout.open(filename,std::ofstream::out | std::ofstream::app);
+    fout<<M.dim().first<<" "<<M.dim().second;
+    fout<<M;
+    fout.close();
 }
 template<typename T>
 std::vector<T> get_vec(std::string S,char sep){
@@ -269,15 +351,6 @@ void init_rand(Matrix<T>& M,std::size_t seed){
         for(std::size_t j=0;j<col;j++){
         M(i,j)=rand()%seed;
         }
-    }
-}
-template<typename T>
-void init_eye(Matrix<T>& M,std::size_t seed){
-    std::size_t row=M.dim().first;
-    std::size_t col=M.dim().second;
-    //srand(time(NULL));
-    for(std::size_t i=0;i<row;i++){
-        M(i,i)=seed;
     }
 }
 template<typename T>
@@ -359,40 +432,6 @@ void rearrange(Matrix<T>& m){
     }
 }
 template<typename T>
-void row_mul(Matrix<T>& m,std::size_t row,T val){
-    for(int i=0;i<m.dim().second;i++)m(row,i)=val*m(row,i);
-}
-template<typename T>
-Matrix<T> inverse(Matrix<T>& m){
-    Matrix<T> temp(m.dim().first,2*m.dim().second);
-    std::size_t row=m.dim().first;
-    std::size_t col=m.dim().second;
-    Matrix<T> res(row,col);
-    T var;
-    for(int i=0;i<row;i++){
-        for(int j=0;j<col;j++){
-            temp(i,j)=m(i,j);
-        }
-        temp(i,col+i)=1;
-    }
-    rearrange(temp);
-    for(int i=0;i<row;i++){
-        for(int j=0;j<col;j++){
-            if(i!=j){
-                Modify(temp,j,i,-temp(j,i)/temp(i,i));
-            }
-        }
-        rearrange(temp);
-        row_mul(temp,i,1/temp(i,i));
-    }
-    for(int i=0;i<row;i++){
-        for(int j=col;j<2*col;j++){
-            res(i,j-col)=temp(i,j);
-        }
-    }
-    return res;
-}
-template<typename T>
 void Upper_diogonlised(Matrix<T>& m){
     std::size_t row=m.dim().first;
     std::size_t col=m.dim().second;
@@ -439,9 +478,10 @@ void Transform(Matrix<T>& M,Fun f){
     std::transform(vec.begin(),vec.end(),vec.begin(),f);
 }
 template<typename T,typename Fun>
-T accumulate(Matrix<T>& M,Fun f,T init){
-    std::vector<T>& vec=M.get_vector();
-    return std::accumulate(vec.begin(),vec.end(),init,f);
+void Transform(Matrix<T>& M,Matrix<T>& M_res,Fun f){
+    std::vector<T>& vec_M=M.get_vector();
+    std::vector<T>& vec_M_res=M_res.get_vector();
+    std::transform(vec_M.begin(),vec_M.end(),vec_M_res.begin(),f);
 }
 template<typename T,typename Fun>
 void Transform(Matrix<T>& lhs,Matrix<T>& rhs,Matrix<T>& res,Fun f){
@@ -494,4 +534,22 @@ std::pair<Matrix<T>,Matrix<T>> Dolittle_LU(Matrix<T>& M){
         }
     }
     return {L,U};
+}
+template<typename T,typename Fun>
+Matrix<T> math_fun(Matrix<T>& M,Fun f){
+    Matrix<T> res(M.dim().first,M.dim().second);
+    Transform(M,res,f);
+    return res;
+}
+template<typename T>
+Matrix<T> tanh(Matrix<T>& M){
+    return math_fun(M,[](T x){return std::tanh(x);});
+}
+template<typename T>
+Matrix<T> pow(Matrix<T>& M,T n){
+    return math_fun(M,[&](T x){return n>0?std::pow(x,n):(1.0/std::pow(x,n));});
+}
+template<typename T>
+Matrix<T> sigmoid(Matrix<T>& M){
+    return math_fun(M,[](T x){1.0/(1+std::exp(-x));});
 }
