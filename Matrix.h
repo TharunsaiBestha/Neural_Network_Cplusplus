@@ -354,6 +354,15 @@ void init_rand(Matrix<T>& M,std::size_t seed){
     }
 }
 template<typename T>
+void init_eye(Matrix<T>& M,std::size_t seed){
+    std::size_t row=M.dim().first;
+    std::size_t col=M.dim().second;
+    //srand(time(NULL));
+    for(std::size_t i=0;i<row;i++){
+        M(i,i)=seed;
+    }
+}
+template<typename T>
 Matrix<T> transpose(const Matrix<T>& M){
         std::pair<std::size_t,std::size_t> temp=M.dim();
         Matrix<T> temp_m(temp.second,temp.first);
@@ -430,6 +439,40 @@ void rearrange(Matrix<T>& m){
             }
         }
     }
+}
+template<typename T>
+void row_mul(Matrix<T>& m,std::size_t row,T val){
+    for(int i=0;i<m.dim().second;i++)m(row,i)=val*m(row,i);
+}
+template<typename T>
+Matrix<T> inverse(Matrix<T>& m){
+    Matrix<T> temp(m.dim().first,2*m.dim().second);
+    std::size_t row=m.dim().first;
+    std::size_t col=m.dim().second;
+    Matrix<T> res(row,col);
+    T var;
+    for(int i=0;i<row;i++){
+        for(int j=0;j<col;j++){
+            temp(i,j)=m(i,j);
+        }
+        temp(i,col+i)=1;
+    }
+    rearrange(temp);
+    for(int i=0;i<row;i++){
+        for(int j=0;j<col;j++){
+            if(i!=j){
+                Modify(temp,j,i,-temp(j,i)/temp(i,i));
+            }
+        }
+        rearrange(temp);
+        row_mul(temp,i,1/temp(i,i));
+    }
+    for(int i=0;i<row;i++){
+        for(int j=col;j<2*col;j++){
+            res(i,j-col)=temp(i,j);
+        }
+    }
+    return res;
 }
 template<typename T>
 void Upper_diogonlised(Matrix<T>& m){
