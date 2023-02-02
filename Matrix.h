@@ -3,10 +3,12 @@
 #include<cmath>
 #include<fstream>
 #include <bits/stdc++.h>
+#include<limits>
 template<typename T>
 class Matrix
 {
     private:
+    typedef  T Mat_Type;
     std::vector<T> vec;
     std::pair<std::size_t,std::size_t> d;
     public:
@@ -272,14 +274,13 @@ Matrix<T> operator*(Matrix<T>&& lhs,Matrix<T>&& rhs){
     }
 template<typename T>
 std::ostream& operator<<(std::ostream& os,const Matrix<T>& M){
-        os<<"\n";
+        os<<std::endl;
         for(int i=0;i<M.dim().first;i++){
-            for(int j=0;j<M.dim().second;j++){
-                os<<M(i,j)<<" ";
+            for(int j=0;j<M.dim().second-1;j++){
+                os<<M(i,j)<<' ';
             }
-            os<<"\n";
+            os<<M(i,M.dim().second-1)<<std::endl;
         }
-        os<<"\n";
         return os;
     }
 template<typename T>
@@ -444,6 +445,18 @@ template<typename T>
 void row_mul(Matrix<T>& m,std::size_t row,T val){
     for(int i=0;i<m.dim().second;i++)m(row,i)=val*m(row,i);
 }
+template<typename T,typename Fun>
+T row_op(Matrix<T> M,std::size_t row,Fun f){
+    T res{};
+    for(int i=0;i<M.dim().second;i++)res+=f(res,M(row,i));
+    return res;
+}
+template<typename T,typename Fun>
+T row_transform(Matrix<T> M,std::size_t row,Fun f){
+    T res{};
+    for(int i=0;i<M.dim().second;i++)M(row,i)=f(M(row,i));
+    return res;
+}
 template<typename T>
 Matrix<T> inverse(Matrix<T>& m){
     Matrix<T> temp(m.dim().first,2*m.dim().second);
@@ -577,6 +590,67 @@ std::pair<Matrix<T>,Matrix<T>> Dolittle_LU(Matrix<T>& M){
         }
     }
     return {L,U};
+}
+template<typename T>
+Matrix<T> mean(Matrix<T>& M,bool flag=false){
+    Matrix<T> res;
+    if(!flag){
+        res.set_dim(1,1);
+        res(0,0)=std::accumulate(M.get_vector().begin,M.get_vector().end)/(M.dim().first*M.dim().second);
+    }
+    else{
+        res.set_dim(1,M.dim().first);
+        for(int i=0;i<M.dim().first;i++){
+            res(0,i)=row_op(M,i,[](T y,T x){return y+x;});
+            res(0,i)=res(0,i)/M.dim().second;}
+    }
+    return res;
+}
+template<typename T>
+Matrix<T> varience(Matrix<T>& M,bool flag=false){
+    Matrix<T> mu=mean(M,flag);
+    Matrix<T> res;
+    if(!flag){
+        res(0,0)=std::accumulate(M.get_vector().begin,M.get_vector().end,
+        [&](T x,T y){return x+std::pow(y-mu(0,0),2);});
+    }
+    else{
+        res.set_dim(1,M.dim().first);
+        for(int i=0;i<M.dim().second;i++){
+            res(0,i)=row_op(M,[&](T x,T y){return x+std::pow(y-mu(0,i),2);});
+            res(0,i)=res(0,i)/M.dim().second;
+        }
+    }
+    return res;
+}
+template<typename T>
+std::pair<Matrix<T>,Matrix<T>> normalization(Matrix<T>& M,T gemma=1,T beta=0,T epsolon=0,bool flag=false){
+    Matrix<T> m,v;
+    Matrix<T> out(M.dim().first,M.dim().second);
+    std::pair<Matrix<T>,Matrix<T>> res;
+    int x=0;
+    res.second.set_dim(3,std::max(M.dim().second,4));
+    m=mean(M,flag);
+    v=varience(M,flag);
+    if(!flag){
+        res.second(2,3)=std::numeric_limits<T>::max();
+        Transform(M,out,[&](T x){return (x-m(0,0))/std::sqrt(v(0,0)+epsolon);});
+        res(0,0)=m(0,0);
+        res(1,0)=v(0,0);       
+    }
+    else{
+        res.second(2,3)=std::numeric_limits<T>::lowest();
+        for(int i=0;i<M.dim().second;i++){
+            row_transform(M,i,[&](T x){return (x-m(0,i))/std::sqrt(v(0,i)+epsolon);});
+        }
+    }
+    for(int i=0;i<M.dim().second;i++){
+        res.second(0,i)=m(0,i);
+        res.second(1,i)=v(0,i);
+    }
+    res.second(2,0)=gemma;res.second(2,1)=beta;res.second(2,2)=epsolon;
+    res.first=gemma*out+beta;
+    return res;
 }
 template<typename T,typename Fun>
 Matrix<T> math_fun(Matrix<T>& M,Fun f){
